@@ -38,48 +38,72 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Feature Cards animados */}
-        <div className="login-features">
+        {/* Health Animation */}
+        <div className="health-anim">
 
-          <div className="feature-card">
-            <div className="feature-icon verde">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="1" x2="12" y2="23" />
-                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+          {/* Núcleo pulsante */}
+          <div className="health-core">
+            <div className="hc-ring hc-r1" />
+            <div className="hc-ring hc-r2" />
+            <div className="hc-ring hc-r3" />
+            <div className="hc-center">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="rgba(255,255,255,0.9)" stroke="none">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
               </svg>
-            </div>
-            <div className="feature-text">
-              <strong>Financeiro & Faturamento</strong>
-              <span>KPIs e relatórios em tempo real</span>
             </div>
           </div>
 
-          <div className="feature-card">
-            <div className="feature-icon azul">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+          {/* Card 1 — Emagrecimento */}
+          <div className="hm-card hm1">
+            <div className="hm-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>
               </svg>
             </div>
-            <div className="feature-text">
-              <strong>Processos Internos</strong>
-              <span>Gestão e acompanhamento de fluxos</span>
-            </div>
+            <span className="hm-val">14 kg</span>
+            <span className="hm-label">Emagrecimento</span>
           </div>
 
-          <div className="feature-card">
-            <div className="feature-icon laranja">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          {/* Card 2 — Frequência */}
+          <div className="hm-card hm2">
+            <div className="hm-icon hm-icon-heart">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
               </svg>
             </div>
-            <div className="feature-text">
-              <strong>Colaboradores</strong>
-              <span>Equipe e gestão de pessoas</span>
-            </div>
+            <span className="hm-val">68 bpm</span>
+            <span className="hm-label">Freq. Cardíaca</span>
           </div>
+
+          {/* Card 3 — IMC */}
+          <div className="hm-card hm3">
+            <div className="hm-icon hm-icon-imc">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="5" r="2"/><path d="M12 7v8M8 11l4 4 4-4"/>
+              </svg>
+            </div>
+            <span className="hm-val">IMC 23.4</span>
+            <span className="hm-label">Massa Corporal</span>
+          </div>
+
+          {/* Card 4 — Saúde */}
+          <div className="hm-card hm4">
+            <div className="hm-icon hm-icon-ok">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </div>
+            <span className="hm-val">94%</span>
+            <span className="hm-label">Aderência</span>
+          </div>
+
+          {/* Linha de conexão sutil */}
+          <svg className="hm-lines" viewBox="0 0 320 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <line x1="80" y1="55"  x2="160" y2="110" stroke="rgba(255,255,255,0.12)" strokeWidth="1" strokeDasharray="4 4"/>
+            <line x1="240" y1="55"  x2="160" y2="110" stroke="rgba(255,255,255,0.12)" strokeWidth="1" strokeDasharray="4 4"/>
+            <line x1="80" y1="165" x2="160" y2="110" stroke="rgba(255,255,255,0.12)" strokeWidth="1" strokeDasharray="4 4"/>
+            <line x1="240" y1="165" x2="160" y2="110" stroke="rgba(255,255,255,0.12)" strokeWidth="1" strokeDasharray="4 4"/>
+          </svg>
 
         </div>
 
