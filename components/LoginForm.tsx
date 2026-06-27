@@ -23,7 +23,7 @@ export default function LoginForm() {
 
     if (error) {
       if (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('Failed')) {
-        setErro('Não foi possível conectar ao servidor. Verifique sua conexão ou se o projeto Supabase está ativo.')
+        setErro(`Erro de conexão: ${error.message}`)
       } else if (error.message.includes('Email not confirmed')) {
         setErro('E-mail não confirmado. Desative a confirmação de e-mail no painel do Supabase.')
       } else if (error.message.includes('Invalid login credentials')) {
