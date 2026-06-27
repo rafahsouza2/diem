@@ -35,16 +35,14 @@ export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const primeiroNome = (user?.user_metadata?.full_name ?? user?.email ?? 'Usuário').split(' ')[0]
+  const nomeCompleto = user?.user_metadata?.full_name ?? ''
+  const primeiroNome = nomeCompleto.split(' ')[0] || 'Rafael'
 
   return (
     <main className="main-content">
-      {/* Saudação — popular dinamicamente via API de sessão */}
       <div className="greeting">
         <h1>{getSaudacao()}, {primeiroNome}! 👋</h1>
-        <p style={{ textTransform: 'capitalize' }}>
-          {getDataFormatada()} — Aqui está o resumo do dia.
-        </p>
+        <p style={{ textTransform: 'capitalize' }}>{getDataFormatada()}</p>
       </div>
 
       {/* KPI CARDS — valores vindos da API financeira */}
