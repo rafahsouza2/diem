@@ -22,7 +22,15 @@ export default function LoginForm() {
     const { error } = await supabase.auth.signInWithPassword({ email, password: senha })
 
     if (error) {
-      setErro('E-mail ou senha incorretos. Verifique seus dados e tente novamente.')
+      if (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('Failed')) {
+        setErro('Não foi possível conectar ao servidor. Verifique sua conexão ou se o projeto Supabase está ativo.')
+      } else if (error.message.includes('Email not confirmed')) {
+        setErro('E-mail não confirmado. Desative a confirmação de e-mail no painel do Supabase.')
+      } else if (error.message.includes('Invalid login credentials')) {
+        setErro('E-mail ou senha incorretos. Verifique seus dados e tente novamente.')
+      } else {
+        setErro(error.message)
+      }
       setCarregando(false)
       return
     }
