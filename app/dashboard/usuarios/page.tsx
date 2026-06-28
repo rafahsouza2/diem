@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
 import UsuariosPage from '@/components/UsuariosPage'
 
 export default async function UsuariosAdminPage() {
@@ -9,10 +10,13 @@ export default async function UsuariosAdminPage() {
   let erroConfig: string | undefined
 
   try {
-    const supabase = createAdminClient()
+    const supabase    = createAdminClient()
+    const authClient  = await createClient()
+    const { data: { user: me } } = await authClient.auth.getUser()
+
     const { data, error } = await supabase.auth.admin.listUsers({ perPage: 1000 })
     if (error) throw error
-    usuarios = (data?.users ?? []).map(u => ({
+    usuarios = (data?.users ?? []).filter(u => u.email !== me?.email).map(u => ({
       id:           u.id,
       email:        u.email ?? '',
       nome:         (u.user_metadata?.full_name ?? '') as string,
