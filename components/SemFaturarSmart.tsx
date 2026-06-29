@@ -32,9 +32,9 @@ function btnStyle(disabled: boolean, active = false): React.CSSProperties {
   return { padding: '5px 10px', borderRadius: 6, border: '1.5px solid var(--cinza-borda)', background: active ? 'var(--azul)' : '#fff', color: active ? '#fff' : disabled ? 'var(--cinza-borda)' : 'var(--grafite)', cursor: disabled ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }
 }
 
-const TIPO_LABEL: Record<string, string> = { T1: 'Exato', T2: '±7 dias', T4: '±30 dias', Nao: 'Não encontrado', SemCod: 'Sem código' }
-const TIPO_COLOR: Record<string, string> = { T1: '#059669', T2: '#2563EB', T4: '#D97706', Nao: '#DC2626', SemCod: '#94A3B8' }
-const TIPO_CLASS: Record<string, string> = { T1: 's-concluido', T2: 's-andamento', T4: 's-pendente', Nao: 's-atrasado', SemCod: '' }
+const TIPO_LABEL: Record<string, string> = { T1: 'Exato', T2: '±7 dias', T4: '±30 dias', Nao: 'Não encontrado', SemCod: 'Particular' }
+const TIPO_COLOR: Record<string, string> = { T1: '#059669', T2: '#2563EB', T4: '#D97706', Nao: '#DC2626', SemCod: '#7D9A3A' }
+const TIPO_CLASS: Record<string, string> = { T1: 's-concluido', T2: 's-andamento', T4: 's-pendente', Nao: 's-atrasado', SemCod: 's-concluido' }
 
 /* ── ABA ANÁLISE ────────────────────────────────────────── */
 function AbaAnalise({ data }: { data: SFData }) {
@@ -51,7 +51,7 @@ function AbaAnalise({ data }: { data: SFData }) {
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>sem correspondente na AMHP · {fmtM(resumo.valorNao)} em valor</div>
         </div>
         <div style={{ flex: 1, fontSize: 12, color: 'var(--grafite)', lineHeight: 1.7 }}>
-          Estes atendimentos estão marcados como <strong>"Aberto"</strong> no Smart e <strong>não foram encontrados</strong> na plataforma AMHP. Diferente dos registros <em>Particular</em> (que nunca passam pela AMHP), estes deveriam ter sido faturados ao convênio mas não constam no sistema de cobrança.
+          Estes atendimentos estão marcados como <strong>"Aberto"</strong> no Smart e <strong>não foram encontrados</strong> na plataforma AMHP. Diferente dos registros <em>Particular</em> — identificados por não possuírem código TISS — estes deveriam ter sido faturados ao convênio mas não constam no sistema de cobrança.
         </div>
       </div>
 
@@ -87,7 +87,7 @@ function AbaAnalise({ data }: { data: SFData }) {
           {[
             { label: 'Com match AMHP (T1+T2+T4)', qtd: resumo.abertoMatch, val: resumo.valorMatch, cor: 'var(--verde)', pct: Math.round(resumo.abertoMatch / resumo.aberto * 100) },
             { label: 'Sem match — não faturados', qtd: resumo.abertoNao, val: resumo.valorNao, cor: 'var(--vermelho)', pct: abertoSemMatchPct },
-            { label: 'Sem código TISS', qtd: resumo.abertoSemCod, val: 0, cor: 'var(--text-muted)', pct: Math.round(resumo.abertoSemCod / resumo.aberto * 100) },
+            { label: 'Particular (sem código TISS)', qtd: resumo.abertoSemCod, val: 0, cor: 'var(--verde)', pct: Math.round(resumo.abertoSemCod / resumo.aberto * 100) },
           ].map(s => (
             <div key={s.label} style={{ marginBottom: 14 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
@@ -218,7 +218,7 @@ function AbaSemFaturar({ registros }: { registros: RegNao[] }) {
         </div>
         <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
           <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-            Atendimentos marcados como <strong>Aberto</strong> no Smart que não possuem correspondente na AMHP. Estes deveriam ter sido faturados ao convênio. Verifique se houve falha de lançamento ou se o paciente é Particular não identificado.
+            Atendimentos marcados como <strong>Aberto</strong> no Smart que não possuem correspondente na AMHP e <strong>possuem código TISS</strong> (convênio). Estes deveriam ter sido faturados ao convênio — verifique se houve falha de lançamento. Atendimentos sem código TISS já são tratados como Particular.
           </p>
         </div>
       </div>

@@ -66,9 +66,9 @@ export default function SmartSemAMHP() {
       .catch(() => setLoading(false))
   }, [])
 
-  /* Separar particulares em memória */
-  const semPart  = useMemo(() => data?.registros.filter(r => r.st !== 'P') ?? [], [data])
-  const sooPart  = useMemo(() => data?.registros.filter(r => r.st === 'P') ?? [], [data])
+  /* Sem código = Particular */
+  const semPart  = useMemo(() => data?.registros.filter(r => r.cod && r.cod.trim() !== '') ?? [], [data])
+  const sooPart  = useMemo(() => data?.registros.filter(r => !r.cod || r.cod.trim() === '') ?? [], [data])
 
   const totalSP  = useMemo(() => semPart.reduce((s, r) => s + r.val, 0), [semPart])
   const totalPart= useMemo(() => sooPart.reduce((s, r) => s + r.val, 0), [sooPart])
@@ -489,8 +489,8 @@ function AbaAtendimentos({ regs, titulo }: { regs: Registro[]; titulo: string })
   const paginados= filtrados.slice((pagina_ - 1) * POR_PAG, pagina_ * POR_PAG)
   function go(p: number) { setPagina(Math.max(1, Math.min(p, totalPag))) }
 
-  const ST_LABEL_AT: Record<string, string> = { Faturado: 'Faturado', Aberto: 'Em Aberto' }
-  const ST_CLASS_AT: Record<string, string> = { Faturado: 's-andamento', Aberto: 's-pendente' }
+  const ST_LABEL_AT: Record<string, string> = { Faturado: 'Faturado', Aberto: 'Em Aberto', P: 'Particular' }
+  const ST_CLASS_AT: Record<string, string> = { Faturado: 's-andamento', Aberto: 's-pendente', P: 's-concluido' }
 
   return (
     <div className="card">
@@ -515,20 +515,24 @@ function AbaAtendimentos({ regs, titulo }: { regs: Registro[]; titulo: string })
           <thead>
             <tr>
               <th>Data</th><th>Paciente</th><th>Código</th><th>Procedimento</th>
-              <th style={{ textAlign: 'right' }}>Valor</th><th>Status</th>
+              <th style={{ textAlign: 'right' }}>Valor</th><th>Status</th><th>Tipo</th>
             </tr>
           </thead>
           <tbody>
-            {paginados.map((r, i) => (
+            {paginados.map((r, i) => {
+              const isParticular = !r.cod || r.cod.trim() === ''
+              return (
               <tr key={i}>
                 <td style={{ whiteSpace: 'nowrap', fontSize: 12 }}>{fmtData(r.dt)}</td>
                 <td style={{ fontSize: 12, fontWeight: 600 }}>{r.pac}</td>
-                <td style={{ fontSize: 11, color: 'var(--cinza-texto)' }}>{r.cod}</td>
+                <td style={{ fontSize: 11, color: 'var(--cinza-texto)', fontFamily: 'monospace' }}>{r.cod || '—'}</td>
                 <td style={{ fontSize: 12 }}>{r.proc}</td>
                 <td style={{ textAlign: 'right', fontWeight: 700, fontSize: 12 }}>{fmtM(r.val)}</td>
                 <td><span className={`status-badge ${ST_CLASS_AT[r.st] ?? 's-pendente'}`}>{ST_LABEL_AT[r.st] ?? r.st}</span></td>
+                <td>{isParticular && <span className="status-badge s-concluido">Particular</span>}</td>
               </tr>
-            ))}
+              )
+            })}
           </tbody>
         </table>
       </div>

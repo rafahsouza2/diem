@@ -79,6 +79,10 @@ function statusClass(s: string) {
   if (s === 'Aberto')  return 's-andamento'
   return 's-pendente'
 }
+function statusLabel(s: string) {
+  if (s === 'P') return 'Pendente'
+  return s
+}
 function fmtDate(dt: string) {
   if (!dt) return '—'
   const [y, m, d] = dt.split('-')
@@ -308,7 +312,11 @@ function AbaAtendimentos() {
 
   const filtrados = useMemo(() => {
     let r = dados
-    if (filtroStatus !== 'Todos') r = r.filter((x) => x.st === filtroStatus)
+    if (filtroStatus === 'Particular') {
+      r = r.filter((x) => !x.cod || x.cod.trim() === '')
+    } else if (filtroStatus !== 'Todos') {
+      r = r.filter((x) => x.st === filtroStatus)
+    }
     if (filtroAno !== 'Todos')    r = r.filter((x) => x.dt.startsWith(filtroAno))
     if (busca.trim()) {
       const b = busca.toLowerCase()
@@ -351,7 +359,7 @@ function AbaAtendimentos() {
         </div>
 
         <div className="period-tabs">
-          {['Todos','Faturado','P','Aberto'].map((s) => (
+          {['Todos','Faturado','P','Aberto','Particular'].map((s) => (
             <button key={s} className={`period-tab${filtroStatus===s?' active':''}`}
               onClick={() => { setFiltroStatus(s); setPagina(1) }}>
               {s === 'P' ? 'Pendente' : s}
@@ -387,17 +395,27 @@ function AbaAtendimentos() {
                 </tr>
               </thead>
               <tbody>
-                {pagAtual.map((row, i) => (
+                {pagAtual.map((row, i) => {
+                  const isParticular = !row.cod || row.cod.trim() === ''
+                  return (
                   <tr key={i}>
                     <td style={{ whiteSpace:'nowrap', fontSize:12 }}>{fmtDate(row.dt)}</td>
-                    <td style={{ fontFamily:'monospace', fontSize:11, color:'var(--cinza-texto)' }}>{row.cod}</td>
+                    <td style={{ fontFamily:'monospace', fontSize:11, color: isParticular ? 'var(--cinza-borda)' : 'var(--cinza-texto)' }}>
+                      {row.cod || '—'}
+                    </td>
                     <td style={{ fontWeight:500, maxWidth:220, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }} title={row.proc}>{row.proc}</td>
                     <td style={{ fontSize:12, maxWidth:200, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }} title={row.pac}>{row.pac}</td>
                     <td style={{ fontSize:11, color:'var(--cinza-texto)' }}>{row.cid||'—'}</td>
-                    <td><span className={`status-badge ${statusClass(row.st)}`}>{row.st==='P'?'Pendente':row.st}</span></td>
+                    <td>
+                      {isParticular
+                        ? <span className="status-badge s-concluido">Particular</span>
+                        : <span className={`status-badge ${statusClass(row.st)}`}>{statusLabel(row.st)}</span>
+                      }
+                    </td>
                     <td style={{ textAlign:'right', fontWeight:700, whiteSpace:'nowrap' }}>R$ {fmt(row.val)}</td>
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           </div>
