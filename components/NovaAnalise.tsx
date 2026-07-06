@@ -489,17 +489,25 @@ function AbaOutraOp({ data }: { data: NAData }) {
 
 /* ── ABA CRUZAMENTO AMHP ─────────────────────────────────────── */
 function AbaCruzamento({ data }: { data: NAData }) {
-  const { cruzamento } = data
-  const { resumo, mensal, porConv, semMatch } = cruzamento
+  const cruzamento = data.cruzamento
 
   const [busca,  setBusca]  = useState('')
   const [pagina, setPagina] = useState(1)
 
+  const semMatchSrc = cruzamento?.semMatch ?? []
   const filtrados = useMemo(() => {
-    if (!busca.trim()) return semMatch
+    if (!busca.trim()) return semMatchSrc
     const b = busca.toLowerCase()
-    return semMatch.filter(r => r.pac.toLowerCase().includes(b) || r.conv.toLowerCase().includes(b))
-  }, [semMatch, busca])
+    return semMatchSrc.filter(r => r.pac.toLowerCase().includes(b) || r.conv.toLowerCase().includes(b))
+  }, [semMatchSrc, busca])
+
+  if (!cruzamento) return (
+    <div style={{ color: 'var(--cinza-texto)', padding: 40, textAlign: 'center' }}>
+      Dados de cruzamento não disponíveis.
+    </div>
+  )
+
+  const { resumo, mensal, porConv, semMatch } = cruzamento
 
   const totalPag = Math.ceil(filtrados.length / PER_PAGE)
   const pag_     = Math.min(pagina, totalPag || 1)
@@ -698,7 +706,7 @@ export default function NovaAnalise() {
     { id: 'amhp',      label: `Via AMHP (${data.resumo.amhp.qtd.toLocaleString('pt-BR')})`, iconPath: 'M22 11.08V12a10 10 0 1 1-5.93-9.14 M22 4 L12 14.01 9 11.01' },
     { id: 'particular',label: `Particular (${data.resumo.particular.qtd.toLocaleString('pt-BR')})`, iconPath: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 7 a4 4 0 1 0 0-8 M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75' },
     { id: 'outraop',   label: `Outras op. (${data.resumo.outraOp.qtd.toLocaleString('pt-BR')})`, iconPath: 'M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z' },
-    { id: 'cruzamento',label: `Cruzamento AMHP (${data.cruzamento.resumo.pctMatch}%)`,            iconPath: 'M18 20V10 M12 20V4 M6 20V14 M22 4L12 14.01 9 11.01' },
+    { id: 'cruzamento',label: `Cruzamento AMHP (${data.cruzamento?.resumo?.pctMatch ?? '?'}%)`,   iconPath: 'M18 20V10 M12 20V4 M6 20V14 M22 4L12 14.01 9 11.01' },
   ] as const
 
   return (
