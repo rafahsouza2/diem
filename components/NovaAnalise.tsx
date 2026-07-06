@@ -13,6 +13,15 @@ interface MesItem { mes: string; qtdAMHP: number; valAMHP: number; qtdPart: numb
 interface ConvItem { conv: string; qtd: number; val: number; cat: string }
 interface ProcItem { proc: string; qtd: number; val: number }
 interface Particular { dt: string; pac: string; proc: string; val: number }
+interface SemMatch   { dt: string; pac: string; conv: string; proc: string; val: number }
+interface CruzMes    { mes: string; qtdT1: number; valT1: number; qtdT2: number; valT2: number; qtdNao: number; valNao: number }
+interface CruzConv   { conv: string; qtd: number; qtdT1: number; qtdT2: number; qtdNao: number; val: number }
+interface Cruzamento {
+  resumo: { total: number; foraPeriodo: number; valTotal: number; pctMatch: number; t1: { qtd: number; val: number }; t2: { qtd: number; val: number }; nao: { qtd: number; val: number } }
+  mensal:   CruzMes[]
+  porConv:  CruzConv[]
+  semMatch: SemMatch[]
+}
 interface NAData {
   resumo:       Resumo
   mensal:       MesItem[]
@@ -21,6 +30,7 @@ interface NAData {
   topParticular:ProcItem[]
   topOutraOp:   ProcItem[]
   particulares: Particular[]
+  cruzamento:   Cruzamento
 }
 
 /* ── Helpers ────────────────────────────────────────────────── */
@@ -477,11 +487,191 @@ function AbaOutraOp({ data }: { data: NAData }) {
   )
 }
 
+/* ── ABA CRUZAMENTO AMHP ─────────────────────────────────────── */
+function AbaCruzamento({ data }: { data: NAData }) {
+  const { cruzamento } = data
+  const { resumo, mensal, porConv, semMatch } = cruzamento
+
+  const [busca,  setBusca]  = useState('')
+  const [pagina, setPagina] = useState(1)
+
+  const filtrados = useMemo(() => {
+    if (!busca.trim()) return semMatch
+    const b = busca.toLowerCase()
+    return semMatch.filter(r => r.pac.toLowerCase().includes(b) || r.conv.toLowerCase().includes(b))
+  }, [semMatch, busca])
+
+  const totalPag = Math.ceil(filtrados.length / PER_PAGE)
+  const pag_     = Math.min(pagina, totalPag || 1)
+  const paginados= filtrados.slice((pag_ - 1) * PER_PAGE, pag_ * PER_PAGE)
+  function go(p: number) { setPagina(Math.max(1, Math.min(p, totalPag))) }
+
+  const CHART_H  = 120
+  const maxQtdMes= Math.max(...mensal.map(m => m.qtdT1 + m.qtdT2 + m.qtdNao), 1)
+
+  return (
+    <div>
+      {/* Cabeçalho explicativo */}
+      <div style={{ background: 'rgba(42,171,187,0.06)', border: '1px solid rgba(42,171,187,0.25)', borderRadius: 10, padding: '16px 20px', marginBottom: 24, display: 'flex', gap: 32, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--azul)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Cruzamento Quitação Smart × Extrato AMHP</div>
+          <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--grafite)', marginTop: 2 }}>{resumo.pctMatch}% match</div>
+          <div style={{ fontSize: 12, color: 'var(--cinza-texto)', marginTop: 2 }}>{resumo.total.toLocaleString('pt-BR')} registros analisados · {fmtM(resumo.valTotal)} · período Nov/2024–Abr/2026</div>
+        </div>
+        <div style={{ flex: 1, fontSize: 12, color: 'var(--cinza-texto)', lineHeight: 1.7 }}>
+          Cada registro <strong>quitado no Smart</strong> (categoria AMHP) foi buscado no <strong>extrato AMHP</strong> por paciente + data.
+          <br/>Registros anteriores a Nov/2024 ({resumo.foraPeriodo.toLocaleString('pt-BR')}) foram excluídos por não estarem no extrato disponível.
+        </div>
+      </div>
+
+      {/* KPIs */}
+      <div className="kpi-grid" style={{ marginBottom: 24 }}>
+        <div className="kpi-card verde"><div className="kpi-icon-bg"/>
+          <span className="kpi-label">Match exato (T1)</span>
+          <span className="kpi-value">{resumo.t1.qtd.toLocaleString('pt-BR')}</span>
+          <span className="kpi-badge up">▲ {fmtM(resumo.t1.val)} · mesma data</span>
+        </div>
+        <div className="kpi-card azul"><div className="kpi-icon-bg"/>
+          <span className="kpi-label">Match ±7 dias (T2)</span>
+          <span className="kpi-value">{resumo.t2.qtd.toLocaleString('pt-BR')}</span>
+          <span className="kpi-badge up">▲ {fmtM(resumo.t2.val)} · até 7 dias de diff</span>
+        </div>
+        <div className="kpi-card verm"><div className="kpi-icon-bg"/>
+          <span className="kpi-label">Sem match no AMHP</span>
+          <span className="kpi-value">{resumo.nao.qtd.toLocaleString('pt-BR')}</span>
+          <span className="kpi-badge down">▼ {fmtM(resumo.nao.val)} · {Math.round(resumo.nao.qtd / resumo.total * 100)}% do total</span>
+        </div>
+        <div className="kpi-card laranja"><div className="kpi-icon-bg"/>
+          <span className="kpi-label">Fora do período</span>
+          <span className="kpi-value">{resumo.foraPeriodo.toLocaleString('pt-BR')}</span>
+          <span className="kpi-badge">antes de Nov/2024 · sem extrato</span>
+        </div>
+      </div>
+
+      {/* Gráfico mensal + breakdown convênio */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
+        {/* Mensal */}
+        <div className="card">
+          <div className="section-header">
+            <div className="section-title">Evolução Mensal</div>
+            <div className="chart-legend">
+              <div className="chart-legend-item"><div className="chart-legend-dot" style={{ background: 'var(--verde)' }}/>T1 exato</div>
+              <div className="chart-legend-item"><div className="chart-legend-dot" style={{ background: 'var(--azul)' }}/>T2 ±7d</div>
+              <div className="chart-legend-item"><div className="chart-legend-dot" style={{ background: 'var(--vermelho)' }}/>Sem match</div>
+            </div>
+          </div>
+          <div style={{ overflowX: 'auto', marginTop: 12 }}>
+            <div style={{ display: 'flex', gap: 3, alignItems: 'flex-end', height: CHART_H + 24, minWidth: 340 }}>
+              {mensal.map(m => {
+                const tot = m.qtdT1 + m.qtdT2 + m.qtdNao
+                const hT1  = Math.round(m.qtdT1  / maxQtdMes * CHART_H)
+                const hT2  = Math.round(m.qtdT2  / maxQtdMes * CHART_H)
+                const hNao = Math.round(m.qtdNao / maxQtdMes * CHART_H)
+                const label= fmtMes(m.mes)
+                return (
+                  <div key={m.mes} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 30 }}>
+                    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: CHART_H }}
+                      title={`${label}: ${tot} | T1:${m.qtdT1} T2:${m.qtdT2} Nao:${m.qtdNao}`}>
+                      <div style={{ height:`${hNao}px`, background:'var(--vermelho)', opacity:0.8, borderRadius:'2px 2px 0 0' }}/>
+                      <div style={{ height:`${hT2}px`,  background:'var(--azul)', opacity:0.8 }}/>
+                      <div style={{ height:`${hT1}px`,  background:'var(--verde)', opacity:0.85, borderRadius:'0 0 2px 2px' }}/>
+                    </div>
+                    <span style={{ fontSize: 8, color: 'var(--cinza-texto)', marginTop: 3, textAlign: 'center' }}>{label}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Por convênio */}
+        <div className="card">
+          <div className="section-title" style={{ marginBottom: 12 }}>Resultado por Convênio</div>
+          <div className="table-wrap" style={{ maxHeight: 260, overflowY: 'auto' }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Convênio</th>
+                  <th style={{ textAlign: 'right' }}>Total</th>
+                  <th style={{ textAlign: 'right' }}>T1</th>
+                  <th style={{ textAlign: 'right' }}>T2</th>
+                  <th style={{ textAlign: 'right', color: 'var(--vermelho)' }}>Sem</th>
+                </tr>
+              </thead>
+              <tbody>
+                {porConv.map(c => (
+                  <tr key={c.conv}>
+                    <td style={{ fontSize: 11, fontWeight: 600 }}>{c.conv}</td>
+                    <td style={{ textAlign: 'right', fontSize: 11 }}>{c.qtd.toLocaleString('pt-BR')}</td>
+                    <td style={{ textAlign: 'right', fontSize: 11, color: 'var(--verde)', fontWeight: 700 }}>{c.qtdT1.toLocaleString('pt-BR')}</td>
+                    <td style={{ textAlign: 'right', fontSize: 11, color: 'var(--azul)' }}>{c.qtdT2.toLocaleString('pt-BR')}</td>
+                    <td style={{ textAlign: 'right', fontSize: 11, color: 'var(--vermelho)', fontWeight: c.qtdNao > 0 ? 700 : 400 }}>{c.qtdNao.toLocaleString('pt-BR')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* Registros sem match */}
+      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--cinza-borda)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--vermelho)' }}>Registros quitados sem correspondente no extrato AMHP</div>
+            <div style={{ fontSize: 11, color: 'var(--cinza-texto)' }}>{resumo.nao.qtd} registros · {fmtM(resumo.nao.val)} — paciente pago no Smart mas não localizado no extrato AMHP</div>
+          </div>
+          <div className="header-search" style={{ maxWidth: 280, margin: 0, marginLeft: 'auto' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="search" placeholder="Paciente ou convênio..." value={busca} onChange={e => { setBusca(e.target.value); setPagina(1) }}/>
+          </div>
+        </div>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Paciente</th>
+                <th>Convênio</th>
+                <th>Procedimento</th>
+                <th style={{ textAlign: 'right' }}>Valor</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginados.map((r, i) => (
+                <tr key={i}>
+                  <td style={{ whiteSpace: 'nowrap', fontSize: 11 }}>{fmtDate(r.dt)}</td>
+                  <td style={{ fontSize: 12, fontWeight: 600 }}>{r.pac}</td>
+                  <td style={{ fontSize: 11, color: 'var(--cinza-texto)' }}>{r.conv}</td>
+                  <td style={{ fontSize: 11, color: 'var(--cinza-texto)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.proc}>{r.proc || '—'}</td>
+                  <td style={{ textAlign: 'right', fontWeight: 700, fontSize: 12, color: 'var(--vermelho)' }}>R$ {fmt(r.val)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {totalPag > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', borderTop: '1px solid var(--cinza-borda)', fontSize: 12 }}>
+            <span style={{ color: 'var(--cinza-texto)' }}>Pág. <strong>{pag_}</strong> / <strong>{totalPag}</strong> · {filtrados.length} reg.</span>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <button onClick={() => go(1)}       disabled={pag_===1}        style={btnStyle(pag_===1)}>«</button>
+              <button onClick={() => go(pag_-1)}  disabled={pag_===1}        style={btnStyle(pag_===1)}>‹</button>
+              {Array.from({length:Math.min(5,totalPag)},(_,i)=>{const s=Math.max(1,Math.min(pag_-2,totalPag-4));const p=s+i;return <button key={p} onClick={()=>go(p)} style={btnStyle(false,p===pag_)}>{p}</button>})}
+              <button onClick={() => go(pag_+1)}  disabled={pag_===totalPag} style={btnStyle(pag_===totalPag)}>›</button>
+              <button onClick={() => go(totalPag)} disabled={pag_===totalPag} style={btnStyle(pag_===totalPag)}>»</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 /* ── COMPONENTE PRINCIPAL ────────────────────────────────────── */
 export default function NovaAnalise() {
   const [data,    setData]    = useState<NAData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [aba,     setAba]     = useState<'analise' | 'amhp' | 'particular' | 'outraop'>('analise')
+  const [aba,     setAba]     = useState<'analise' | 'amhp' | 'particular' | 'outraop' | 'cruzamento'>('analise')
 
   useEffect(() => {
     fetch('/data/nova_analise.json')
@@ -508,6 +698,7 @@ export default function NovaAnalise() {
     { id: 'amhp',      label: `Via AMHP (${data.resumo.amhp.qtd.toLocaleString('pt-BR')})`, iconPath: 'M22 11.08V12a10 10 0 1 1-5.93-9.14 M22 4 L12 14.01 9 11.01' },
     { id: 'particular',label: `Particular (${data.resumo.particular.qtd.toLocaleString('pt-BR')})`, iconPath: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 7 a4 4 0 1 0 0-8 M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75' },
     { id: 'outraop',   label: `Outras op. (${data.resumo.outraOp.qtd.toLocaleString('pt-BR')})`, iconPath: 'M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z' },
+    { id: 'cruzamento',label: `Cruzamento AMHP (${data.cruzamento.resumo.pctMatch}%)`,            iconPath: 'M18 20V10 M12 20V4 M6 20V14 M22 4L12 14.01 9 11.01' },
   ] as const
 
   return (
@@ -538,10 +729,11 @@ export default function NovaAnalise() {
         </div>
       </div>
 
-      {aba === 'analise'    && <AbaAnalise    data={data} />}
-      {aba === 'amhp'       && <AbaAMHP       data={data} />}
-      {aba === 'particular' && <AbaParticular data={data} />}
-      {aba === 'outraop'    && <AbaOutraOp    data={data} />}
+      {aba === 'analise'     && <AbaAnalise     data={data} />}
+      {aba === 'amhp'        && <AbaAMHP        data={data} />}
+      {aba === 'particular'  && <AbaParticular  data={data} />}
+      {aba === 'outraop'     && <AbaOutraOp     data={data} />}
+      {aba === 'cruzamento'  && <AbaCruzamento  data={data} />}
     </main>
   )
 }
