@@ -607,15 +607,17 @@ function AbaCruzamento({ data }: { data: NAData }) {
                 </tr>
               </thead>
               <tbody>
-                {porConv.map(c => (
+                {porConv.map(c => {
+                  const nao = c.qtdNao ?? 0
+                  return (
                   <tr key={c.conv}>
                     <td style={{ fontSize: 11, fontWeight: 600 }}>{c.conv}</td>
-                    <td style={{ textAlign: 'right', fontSize: 11 }}>{c.qtd.toLocaleString('pt-BR')}</td>
-                    <td style={{ textAlign: 'right', fontSize: 11, color: 'var(--verde)', fontWeight: 700 }}>{c.qtdT1.toLocaleString('pt-BR')}</td>
-                    <td style={{ textAlign: 'right', fontSize: 11, color: 'var(--azul)' }}>{c.qtdT2.toLocaleString('pt-BR')}</td>
-                    <td style={{ textAlign: 'right', fontSize: 11, color: 'var(--vermelho)', fontWeight: c.qtdNao > 0 ? 700 : 400 }}>{c.qtdNao.toLocaleString('pt-BR')}</td>
+                    <td style={{ textAlign: 'right', fontSize: 11 }}>{(c.qtd ?? 0).toLocaleString('pt-BR')}</td>
+                    <td style={{ textAlign: 'right', fontSize: 11, color: 'var(--verde)', fontWeight: 700 }}>{(c.qtdT1 ?? 0).toLocaleString('pt-BR')}</td>
+                    <td style={{ textAlign: 'right', fontSize: 11, color: 'var(--azul)' }}>{(c.qtdT2 ?? 0).toLocaleString('pt-BR')}</td>
+                    <td style={{ textAlign: 'right', fontSize: 11, color: 'var(--vermelho)', fontWeight: nao > 0 ? 700 : 400 }}>{nao.toLocaleString('pt-BR')}</td>
                   </tr>
-                ))}
+                )})}
               </tbody>
             </table>
           </div>
