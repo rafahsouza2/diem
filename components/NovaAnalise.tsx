@@ -22,15 +22,22 @@ interface Cruzamento {
   porConv:  CruzConv[]
   semMatch: SemMatch[]
 }
+interface SmartFat {
+  total: number; valTotal: number
+  faturado:  { qtd: number; val: number }
+  aberto:    { qtd: number; val: number }
+  particular:{ qtd: number; val: number }
+}
 interface NAData {
-  resumo:       Resumo
-  mensal:       MesItem[]
-  topConvenios: ConvItem[]
-  topProcsAMHP: ProcItem[]
-  topParticular:ProcItem[]
-  topOutraOp:   ProcItem[]
-  particulares: Particular[]
-  cruzamento:   Cruzamento
+  resumo:          Resumo
+  mensal:          MesItem[]
+  topConvenios:    ConvItem[]
+  topProcsAMHP:    ProcItem[]
+  topParticular:   ProcItem[]
+  topOutraOp:      ProcItem[]
+  particulares:    Particular[]
+  cruzamento:      Cruzamento
+  smartFaturamento:SmartFat
 }
 
 /* ── Helpers ────────────────────────────────────────────────── */
@@ -677,11 +684,186 @@ function AbaCruzamento({ data }: { data: NAData }) {
   )
 }
 
+/* ── ABA ANÁLISE FINAL ───────────────────────────────────────── */
+function AbaFinal({ data }: { data: NAData }) {
+  const sf  = data.smartFaturamento
+  const quit = data.resumo
+
+  const diff    = sf.valTotal - quit.valTotal
+  const diffQtd = sf.total    - quit.total
+
+  /* barras comparativas */
+  const maxVal = sf.valTotal
+
+  const linhas = [
+    { label: 'Faturado (quitado)',  val: sf.faturado.val,  qtd: sf.faturado.qtd,  cor: 'var(--azul)',    desc: 'Registros no Smart com status Faturado' },
+    { label: 'Em Aberto',           val: sf.aberto.val,    qtd: sf.aberto.qtd,    cor: 'var(--laranja)', desc: 'Faturados mas pagamento ainda pendente' },
+    { label: 'Particular (P)',      val: sf.particular.val, qtd: sf.particular.qtd,cor: 'var(--verde)',   desc: 'Atendimentos marcados como Particular no Smart' },
+  ]
+
+  const quit_linhas = [
+    { label: 'Via AMHP',         val: quit.amhp.val,      qtd: quit.amhp.qtd,      cor: 'var(--azul)' },
+    { label: 'Particular',       val: quit.particular.val, qtd: quit.particular.qtd,cor: 'var(--verde)' },
+    { label: 'Outras operadoras',val: quit.outraOp.val,    qtd: quit.outraOp.qtd,   cor: 'var(--laranja)' },
+  ]
+
+  return (
+    <div>
+      {/* Banner de diferença */}
+      <div style={{ background: 'linear-gradient(135deg,rgba(42,171,187,0.08) 0%,rgba(232,114,42,0.06) 100%)', border: '1px solid var(--cinza-borda)', borderRadius: 12, padding: '20px 28px', marginBottom: 28 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--cinza-texto)', textTransform: 'uppercase', letterSpacing: '0.7px', marginBottom: 4 }}>Consolidação Smart × Quitação</div>
+        <div style={{ display: 'flex', gap: 40, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div>
+            <div style={{ fontSize: 12, color: 'var(--cinza-texto)', marginBottom: 2 }}>Total Smart (sistema)</div>
+            <div style={{ fontSize: 32, fontWeight: 900, color: 'var(--grafite)', lineHeight: 1 }}>{fmtM(sf.valTotal)}</div>
+            <div style={{ fontSize: 11, color: 'var(--cinza-texto)', marginTop: 3 }}>{sf.total.toLocaleString('pt-BR')} registros</div>
+          </div>
+          <div style={{ fontSize: 28, color: 'var(--cinza-borda)', fontWeight: 300, alignSelf: 'center' }}>−</div>
+          <div>
+            <div style={{ fontSize: 12, color: 'var(--cinza-texto)', marginBottom: 2 }}>Total Quitação (recebido)</div>
+            <div style={{ fontSize: 32, fontWeight: 900, color: 'var(--azul)', lineHeight: 1 }}>{fmtM(quit.valTotal)}</div>
+            <div style={{ fontSize: 11, color: 'var(--cinza-texto)', marginTop: 3 }}>{quit.total.toLocaleString('pt-BR')} registros</div>
+          </div>
+          <div style={{ fontSize: 28, color: 'var(--cinza-borda)', fontWeight: 300, alignSelf: 'center' }}>=</div>
+          <div style={{ background: 'var(--laranja)', borderRadius: 10, padding: '10px 20px' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#fff', opacity: 0.85, marginBottom: 2 }}>DIFERENÇA</div>
+            <div style={{ fontSize: 28, fontWeight: 900, color: '#fff', lineHeight: 1 }}>{fmtM(diff)}</div>
+            <div style={{ fontSize: 11, color: '#fff', opacity: 0.85, marginTop: 3 }}>{diffQtd.toLocaleString('pt-BR')} registros a mais no Smart</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Duas colunas: Smart breakdown | Quitação breakdown */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
+
+        {/* Smart breakdown */}
+        <div className="card">
+          <div className="section-header">
+            <div className="section-title">Smart — por status</div>
+            <span className="section-badge">{fmtM(sf.valTotal)} total</span>
+          </div>
+          <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {linhas.map(l => {
+              const pct = Math.round(l.val / maxVal * 100)
+              return (
+                <div key={l.label}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
+                    <div>
+                      <span style={{ fontSize: 13, fontWeight: 700 }}>{l.label}</span>
+                      <span style={{ fontSize: 11, color: 'var(--cinza-texto)', marginLeft: 8 }}>{l.desc}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 10, fontSize: 12, flexShrink: 0 }}>
+                      <span style={{ color: 'var(--cinza-texto)' }}>{l.qtd.toLocaleString('pt-BR')}</span>
+                      <strong style={{ color: l.cor }}>{fmtM(l.val)}</strong>
+                      <span style={{ color: 'var(--cinza-texto)', width: 34, textAlign: 'right' }}>{pct}%</span>
+                    </div>
+                  </div>
+                  <div style={{ height: 8, background: 'var(--cinza-bg)', borderRadius: 4 }}>
+                    <div style={{ height: '100%', width: `${pct}%`, background: l.cor, borderRadius: 4, opacity: 0.85 }}/>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Quitação breakdown */}
+        <div className="card">
+          <div className="section-header">
+            <div className="section-title">Quitação — por categoria</div>
+            <span className="section-badge">{fmtM(quit.valTotal)} total</span>
+          </div>
+          <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {quit_linhas.map(l => {
+              const pct = Math.round(l.val / maxVal * 100)
+              return (
+                <div key={l.label}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700 }}>{l.label}</span>
+                    <div style={{ display: 'flex', gap: 10, fontSize: 12, flexShrink: 0 }}>
+                      <span style={{ color: 'var(--cinza-texto)' }}>{l.qtd.toLocaleString('pt-BR')}</span>
+                      <strong style={{ color: l.cor }}>{fmtM(l.val)}</strong>
+                      <span style={{ color: 'var(--cinza-texto)', width: 34, textAlign: 'right' }}>{pct}%</span>
+                    </div>
+                  </div>
+                  <div style={{ height: 8, background: 'var(--cinza-bg)', borderRadius: 4 }}>
+                    <div style={{ height: '100%', width: `${pct}%`, background: l.cor, borderRadius: 4, opacity: 0.85 }}/>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Tabela de reconciliação */}
+      <div className="card">
+        <div className="section-title" style={{ marginBottom: 16 }}>Reconciliação de Valores</div>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Origem</th>
+                <th style={{ textAlign: 'right' }}>Registros</th>
+                <th style={{ textAlign: 'right' }}>Valor</th>
+                <th style={{ textAlign: 'right' }}>Situação</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style={{ fontWeight: 700 }}>Total Smart (sistema)</td>
+                <td style={{ fontSize: 11, color: 'var(--cinza-texto)' }}>Smart — todos os status</td>
+                <td style={{ textAlign: 'right', fontWeight: 700 }}>{sf.total.toLocaleString('pt-BR')}</td>
+                <td style={{ textAlign: 'right', fontWeight: 800, color: 'var(--grafite)' }}>{fmtM(sf.valTotal)}</td>
+                <td style={{ textAlign: 'right' }}><span className="status-badge s-andamento">Base</span></td>
+              </tr>
+              <tr>
+                <td style={{ fontWeight: 700 }}>Quitação (recebido)</td>
+                <td style={{ fontSize: 11, color: 'var(--cinza-texto)' }}>Relatório de quitação Smart</td>
+                <td style={{ textAlign: 'right', fontWeight: 700 }}>{quit.total.toLocaleString('pt-BR')}</td>
+                <td style={{ textAlign: 'right', fontWeight: 800, color: 'var(--azul)' }}>{fmtM(quit.valTotal)}</td>
+                <td style={{ textAlign: 'right' }}><span className="status-badge s-concluido">Confirmado</span></td>
+              </tr>
+              <tr style={{ background: 'rgba(232,114,42,0.06)' }}>
+                <td style={{ fontWeight: 700, color: 'var(--laranja)' }}>Em Aberto</td>
+                <td style={{ fontSize: 11, color: 'var(--cinza-texto)' }}>Faturados — pagamento pendente</td>
+                <td style={{ textAlign: 'right', fontWeight: 700 }}>{sf.aberto.qtd.toLocaleString('pt-BR')}</td>
+                <td style={{ textAlign: 'right', fontWeight: 800, color: 'var(--laranja)' }}>{fmtM(sf.aberto.val)}</td>
+                <td style={{ textAlign: 'right' }}><span className="status-badge s-pendente">Pendente</span></td>
+              </tr>
+              <tr style={{ background: 'rgba(125,154,58,0.05)' }}>
+                <td style={{ fontWeight: 700, color: 'var(--verde)' }}>Particular (P)</td>
+                <td style={{ fontSize: 11, color: 'var(--cinza-texto)' }}>Marcados como particular no Smart</td>
+                <td style={{ textAlign: 'right', fontWeight: 700 }}>{sf.particular.qtd.toLocaleString('pt-BR')}</td>
+                <td style={{ textAlign: 'right', fontWeight: 800, color: 'var(--verde)' }}>{fmtM(sf.particular.val)}</td>
+                <td style={{ textAlign: 'right' }}><span className="status-badge s-concluido">Particular</span></td>
+              </tr>
+              <tr style={{ borderTop: '2px solid var(--cinza-borda)', background: 'rgba(232,114,42,0.04)' }}>
+                <td style={{ fontWeight: 800, fontSize: 14 }}>Diferença total</td>
+                <td style={{ fontSize: 11, color: 'var(--cinza-texto)' }}>Smart − Quitação</td>
+                <td style={{ textAlign: 'right', fontWeight: 800, fontSize: 14 }}>{diffQtd.toLocaleString('pt-BR')}</td>
+                <td style={{ textAlign: 'right', fontWeight: 900, fontSize: 16, color: 'var(--laranja)' }}>{fmtM(diff)}</td>
+                <td style={{ textAlign: 'right' }}><span className="status-badge s-atrasado">Gap</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p style={{ fontSize: 11, color: 'var(--cinza-texto)', marginTop: 12, lineHeight: 1.6 }}>
+          <strong>Nota:</strong> O gap de {fmtM(diff)} representa registros presentes no Smart que ainda não foram confirmados na quitação —
+          principalmente os {sf.aberto.qtd.toLocaleString('pt-BR')} em aberto ({fmtM(sf.aberto.val)}) e os {sf.particular.qtd.toLocaleString('pt-BR')} particulares ({fmtM(sf.particular.val)}).
+          A diferença residual ({fmtM(diff - sf.aberto.val - sf.particular.val)}) pode envolver períodos distintos entre os dois relatórios.
+        </p>
+      </div>
+    </div>
+  )
+}
+
 /* ── COMPONENTE PRINCIPAL ────────────────────────────────────── */
 export default function NovaAnalise() {
   const [data,    setData]    = useState<NAData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [aba,     setAba]     = useState<'analise' | 'amhp' | 'particular' | 'outraop' | 'cruzamento'>('analise')
+  const [aba,     setAba]     = useState<'analise' | 'amhp' | 'particular' | 'outraop' | 'cruzamento' | 'final'>('analise')
 
   useEffect(() => {
     fetch('/data/nova_analise.json')
@@ -709,6 +891,7 @@ export default function NovaAnalise() {
     { id: 'particular',label: `Particular (${data.resumo.particular.qtd.toLocaleString('pt-BR')})`, iconPath: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 7 a4 4 0 1 0 0-8 M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75' },
     { id: 'outraop',   label: `Outras op. (${data.resumo.outraOp.qtd.toLocaleString('pt-BR')})`, iconPath: 'M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z' },
     { id: 'cruzamento',label: `Cruzamento AMHP (${data.cruzamento?.resumo?.pctMatch ?? '?'}%)`,   iconPath: 'M18 20V10 M12 20V4 M6 20V14 M22 4L12 14.01 9 11.01' },
+    { id: 'final',     label: 'Análise Final',                                                     iconPath: 'M9 11l3 3L22 4 M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11' },
   ] as const
 
   return (
@@ -744,6 +927,7 @@ export default function NovaAnalise() {
       {aba === 'particular'  && <AbaParticular  data={data} />}
       {aba === 'outraop'     && <AbaOutraOp     data={data} />}
       {aba === 'cruzamento'  && <AbaCruzamento  data={data} />}
+      {aba === 'final'       && <AbaFinal       data={data} />}
     </main>
   )
 }
