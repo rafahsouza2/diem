@@ -70,10 +70,10 @@ export default function GapAnalitico() {
     if (filtroSt === 'Aberto')          r = r.filter(x => x.st === 'Aberto')
     if (filtroSt === 'Particular')      r = r.filter(x => x.st === 'P')
     if (filtroSt === 'Com Código' || filtroSt === 'Fat. Com Código')
-      r = r.filter(x => x.cod && x.cod.trim() !== '' && !/PRO EMAG|protocolo|gestrinona|testosterona|estradiol/i.test(x.proc ?? ''))
+      r = r.filter(x => x.cod && x.cod.trim() !== '' && !/PRO EMAG|NADH|protocolo|gestrinona|testosterona|estradiol/i.test(x.proc ?? ''))
     if (filtroSt === 'Sem Código' || filtroSt === 'Fat. Sem Código')
       r = r.filter(x =>
-        (!x.cod || x.cod.trim() === '' || (x.proc ?? '').includes('PRO EMAG')) &&
+        (!x.cod || x.cod.trim() === '' || /PRO EMAG|NADH/i.test(x.proc ?? '')) &&
         !/protocolo|gestrinona|testosterona|estradiol/i.test(x.proc ?? '') &&
         !(x.cod === '10101012' && x.val > 200)
       )
