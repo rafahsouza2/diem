@@ -116,7 +116,8 @@ export default function GapAnalitico() {
     <main className="main-content">
       <div style={{ marginBottom: 20 }}>
         <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--grafite)' }}>
-          8.497 Registros <span style={{ color: 'var(--laranja)' }}>/ Gap R$ 2,13M</span>
+          {(resumo.aberto.qtd + resumo.pStatus.qtd + fatCount).toLocaleString('pt-BR')} Registros{' '}
+          <span style={{ color: 'var(--laranja)' }}>/ Gap {fmtM(resumo.aberto.val + resumo.pStatus.val + fatVal)}</span>
         </h1>
         <p style={{ fontSize: 13, color: 'var(--cinza-texto)', marginTop: 2 }}>
           Atendimentos Smart não confirmados na quitação · {resumo.pacientes.toLocaleString('pt-BR')} pacientes identificados · Jan/2025–Abr/2026
@@ -127,8 +128,8 @@ export default function GapAnalitico() {
       <div className="kpi-grid" style={{ marginBottom: 20 }}>
         <div className="kpi-card laranja"><div className="kpi-icon-bg"/>
           <span className="kpi-label">Gap total</span>
-          <span className="kpi-value">{fmtM(resumo.gapTotal.val)}</span>
-          <span className="kpi-badge down">▼ {resumo.gapTotal.qtd.toLocaleString('pt-BR')} registros</span>
+          <span className="kpi-value">{fmtM(resumo.aberto.val + resumo.pStatus.val + fatVal)}</span>
+          <span className="kpi-badge down">▼ {(resumo.aberto.qtd + resumo.pStatus.qtd + fatCount).toLocaleString('pt-BR')} registros</span>
         </div>
         <div className="kpi-card laranja"><div className="kpi-icon-bg"/>
           <span className="kpi-label">Em Aberto</span>
