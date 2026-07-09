@@ -64,19 +64,19 @@ export default function GapAnalitico() {
   }, [data])
 
   const filtrados = useMemo(() => {
-    const isFat = filtroSt === 'Fat. sem quitação'
-    let r: RecFlat[] = isFat ? fatRecs : todosAP
+    const isFatBase = filtroSt === 'Fat. sem quitação' || filtroSt === 'Fat. Com Código' || filtroSt === 'Fat. Sem Código'
+    let r: RecFlat[] = isFatBase ? fatRecs : todosAP
 
-    if (!isFat) {
-      if (filtroSt === 'Aberto')     r = r.filter(x => x.st === 'Aberto')
-      if (filtroSt === 'Particular') r = r.filter(x => x.st === 'P')
-      if (filtroSt === 'Com Código') r = r.filter(x => x.cod && x.cod.trim() !== '' && !/PRO EMAG|protocolo|gestrinona|testosterona|estradiol/i.test(x.proc ?? ''))
-      if (filtroSt === 'Sem Código') r = r.filter(x =>
+    if (filtroSt === 'Aberto')          r = r.filter(x => x.st === 'Aberto')
+    if (filtroSt === 'Particular')      r = r.filter(x => x.st === 'P')
+    if (filtroSt === 'Com Código' || filtroSt === 'Fat. Com Código')
+      r = r.filter(x => x.cod && x.cod.trim() !== '' && !/PRO EMAG|protocolo|gestrinona|testosterona|estradiol/i.test(x.proc ?? ''))
+    if (filtroSt === 'Sem Código' || filtroSt === 'Fat. Sem Código')
+      r = r.filter(x =>
         (!x.cod || x.cod.trim() === '' || (x.proc ?? '').includes('PRO EMAG')) &&
         !/protocolo|gestrinona|testosterona|estradiol/i.test(x.proc ?? '') &&
         !(x.cod === '10101012' && x.val > 200)
       )
-    }
 
     const b = busca.trim().toLowerCase()
     if (b) r = r.filter(x =>
@@ -155,13 +155,13 @@ export default function GapAnalitico() {
           <input type="search" placeholder="Buscar paciente, procedimento, CID..." value={busca} onChange={e=>{setBusca(e.target.value);setPagina(1)}}/>
         </div>
         <div className="period-tabs">
-          {['Todos','Aberto','Particular','Com Código','Sem Código','Fat. sem quitação'].map(s => (
+          {['Todos','Aberto','Particular','Com Código','Sem Código','Fat. sem quitação','Fat. Com Código','Fat. Sem Código'].map(s => (
             <button key={s} className={`period-tab${filtroSt===s?' active':''}`} onClick={()=>{setFiltroSt(s);setPagina(1)}}>{s}</button>
           ))}
         </div>
         <span style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--cinza-texto)' }}>
           <strong style={{ color: 'var(--grafite)' }}>{filtrados.length.toLocaleString('pt-BR')}</strong> registros ·{' '}
-          <strong style={{ color: filtroSt === 'Fat. sem quitação' ? 'var(--azul)' : 'var(--laranja)' }}>{fmtM(totalVal)}</strong>
+          <strong style={{ color: ['Fat. sem quitação','Fat. Com Código','Fat. Sem Código'].includes(filtroSt) ? 'var(--azul)' : 'var(--laranja)' }}>{fmtM(totalVal)}</strong>
         </span>
       </div>
 
