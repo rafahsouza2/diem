@@ -54,7 +54,7 @@ const navItems: NavGroup[] = [
         ),
       },
       {
-        label: '8.497 Registros',
+        label: '12.930 Registros',
         href: '/dashboard/gap-analitico',
         icon: (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
