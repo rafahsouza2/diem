@@ -15,6 +15,7 @@ interface GAData {
     gapTotal:   { qtd: number; val: number }
   }
   pacientes: PacGap[]
+  fatNaoQuitRecs?: RecFlat[]
 }
 
 /* ── Helpers ────────────────────────────────────────────────── */
@@ -47,8 +48,8 @@ export default function GapAnalitico() {
       .catch(() => setLoading(false))
   }, [])
 
-  /* Achata todos os registros numa lista plana */
-  const todos: RecFlat[] = useMemo(() => {
+  /* Achata registros Aberto + P */
+  const todosAP: RecFlat[] = useMemo(() => {
     if (!data) return []
     const arr: RecFlat[] = []
     data.pacientes.forEach(p => p.recs.forEach(r => arr.push({ ...r, pac: p.pac })))
@@ -56,10 +57,27 @@ export default function GapAnalitico() {
     return arr
   }, [data])
 
+  /* Registros Fat. sem quitação */
+  const fatRecs: RecFlat[] = useMemo(() => {
+    if (!data?.fatNaoQuitRecs) return []
+    return data.fatNaoQuitRecs
+  }, [data])
+
   const filtrados = useMemo(() => {
-    let r = todos
-    if (filtroSt === 'Aberto')    r = r.filter(x => x.st === 'Aberto')
-    if (filtroSt === 'Particular')r = r.filter(x => x.st === 'P')
+    const isFat = filtroSt === 'Fat. sem quitação'
+    let r: RecFlat[] = isFat ? fatRecs : todosAP
+
+    if (!isFat) {
+      if (filtroSt === 'Aberto')     r = r.filter(x => x.st === 'Aberto')
+      if (filtroSt === 'Particular') r = r.filter(x => x.st === 'P')
+      if (filtroSt === 'Com Código') r = r.filter(x => x.cod && x.cod.trim() !== '' && !/PRO EMAG|protocolo|gestrinona|testosterona|estradiol/i.test(x.proc ?? ''))
+      if (filtroSt === 'Sem Código') r = r.filter(x =>
+        (!x.cod || x.cod.trim() === '' || (x.proc ?? '').includes('PRO EMAG')) &&
+        !/protocolo|gestrinona|testosterona|estradiol/i.test(x.proc ?? '') &&
+        !(x.cod === '10101012' && x.val > 200)
+      )
+    }
+
     const b = busca.trim().toLowerCase()
     if (b) r = r.filter(x =>
       x.pac.toLowerCase().includes(b) ||
@@ -68,7 +86,7 @@ export default function GapAnalitico() {
       (x.cid ?? '').toLowerCase().includes(b)
     )
     return r
-  }, [todos, busca, filtroSt])
+  }, [todosAP, fatRecs, busca, filtroSt])
 
   const totalPag = Math.ceil(filtrados.length / PER_PAGE)
   const pag_     = Math.min(pagina, totalPag || 1)
@@ -76,6 +94,7 @@ export default function GapAnalitico() {
   function go(n: number) { setPagina(Math.max(1, Math.min(n, totalPag))) }
 
   const totalVal = useMemo(() => filtrados.reduce((s, r) => s + r.val, 0), [filtrados])
+  const fatVal   = useMemo(() => fatRecs.reduce((s, r) => s + r.val, 0), [fatRecs])
 
   if (loading) return (
     <main className="main-content">
@@ -91,6 +110,7 @@ export default function GapAnalitico() {
   if (!data) return <main className="main-content"><p style={{ color: 'var(--vermelho)' }}>Erro ao carregar dados.</p></main>
 
   const { resumo } = data
+  const fatCount = fatRecs.length
 
   return (
     <main className="main-content">
@@ -122,20 +142,9 @@ export default function GapAnalitico() {
         </div>
         <div className="kpi-card azul"><div className="kpi-icon-bg"/>
           <span className="kpi-label">Fat. sem quitação</span>
-          <span className="kpi-value">{fmtM(resumo.fatNaoQuit.val)}</span>
-          <span className="kpi-badge down">▼ {resumo.fatNaoQuit.qtd.toLocaleString('pt-BR')} registros</span>
+          <span className="kpi-value">{fmtM(fatVal)}</span>
+          <span className="kpi-badge down">▼ {fatCount.toLocaleString('pt-BR')} registros encontrados</span>
         </div>
-      </div>
-
-      {/* Nota */}
-      <div style={{ background: 'rgba(42,171,187,0.06)', border: '1px solid rgba(42,171,187,0.2)', borderRadius: 10, padding: '10px 16px', marginBottom: 20, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--azul)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginTop: 1, flexShrink: 0 }}>
-          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-        </svg>
-        <p style={{ fontSize: 12, color: 'var(--cinza-texto)', margin: 0, lineHeight: 1.6 }}>
-          Os <strong style={{ color: 'var(--azul)' }}>3.696 registros identificados</strong> (Em Aberto + Particular) estão listados abaixo.
-          Os demais <strong style={{ color: 'var(--azul)' }}>4.801 Faturados sem quitação</strong> ({fmtM(resumo.fatNaoQuit.val)}) requerem cruzamento registro a registro para identificação individual.
-        </p>
       </div>
 
       {/* Filtros */}
@@ -145,13 +154,13 @@ export default function GapAnalitico() {
           <input type="search" placeholder="Buscar paciente, procedimento, CID..." value={busca} onChange={e=>{setBusca(e.target.value);setPagina(1)}}/>
         </div>
         <div className="period-tabs">
-          {['Todos','Aberto','Particular'].map(s => (
+          {['Todos','Aberto','Particular','Com Código','Sem Código','Fat. sem quitação'].map(s => (
             <button key={s} className={`period-tab${filtroSt===s?' active':''}`} onClick={()=>{setFiltroSt(s);setPagina(1)}}>{s}</button>
           ))}
         </div>
         <span style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--cinza-texto)' }}>
           <strong style={{ color: 'var(--grafite)' }}>{filtrados.length.toLocaleString('pt-BR')}</strong> registros ·{' '}
-          <strong style={{ color: 'var(--laranja)' }}>{fmtM(totalVal)}</strong>
+          <strong style={{ color: filtroSt === 'Fat. sem quitação' ? 'var(--azul)' : 'var(--laranja)' }}>{fmtM(totalVal)}</strong>
         </span>
       </div>
 
@@ -172,41 +181,39 @@ export default function GapAnalitico() {
               </tr>
             </thead>
             <tbody>
-              {paginados.map((r, i) => (
-                <tr key={i}>
-                  <td style={{ fontSize: 11, color: 'var(--cinza-texto)', width: 36 }}>
-                    {((pag_ - 1) * PER_PAGE) + i + 1}
-                  </td>
-                  <td style={{ whiteSpace: 'nowrap', fontSize: 11 }}>{fmtDate(r.dt)}</td>
-                  <td style={{ fontWeight: 700, fontSize: 12 }}>{r.pac}</td>
-                  <td style={{ fontSize: 11, color: 'var(--cinza-texto)', fontFamily: 'monospace' }}>{r.cod || '—'}</td>
-                  <td style={{ fontSize: 11, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.proc}>{r.proc || '—'}</td>
-                  <td style={{ fontSize: 11, color: 'var(--cinza-texto)' }}>{r.cid || '—'}</td>
-                  <td>
-                    <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 12,
-                      background: r.st === 'Aberto' ? 'rgba(232,114,42,0.12)' : 'rgba(76,175,80,0.12)',
-                      color: r.st === 'Aberto' ? 'var(--laranja)' : 'var(--verde)' }}>
-                      {r.st === 'P' ? 'Particular' : r.st}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: 'right', fontWeight: 800, fontSize: 13, color: r.st === 'Aberto' ? 'var(--laranja)' : 'var(--verde)' }}>
-                    R$ {fmt(r.val)}
-                  </td>
-                </tr>
-              ))}
+              {paginados.map((r, i) => {
+                const isFatRow = r.st === 'Faturado'
+                const cor = r.st === 'Aberto' ? 'var(--laranja)' : isFatRow ? 'var(--azul)' : 'var(--verde)'
+                const bgBadge = r.st === 'Aberto' ? 'rgba(232,114,42,0.12)' : isFatRow ? 'rgba(42,171,187,0.12)' : 'rgba(76,175,80,0.12)'
+                const label = r.st === 'P' ? 'Particular' : r.st
+                return (
+                  <tr key={i}>
+                    <td style={{ fontSize: 11, color: 'var(--cinza-texto)', width: 36 }}>{((pag_ - 1) * PER_PAGE) + i + 1}</td>
+                    <td style={{ whiteSpace: 'nowrap', fontSize: 11 }}>{fmtDate(r.dt)}</td>
+                    <td style={{ fontWeight: 700, fontSize: 12 }}>{r.pac}</td>
+                    <td style={{ fontSize: 11, color: 'var(--cinza-texto)', fontFamily: 'monospace' }}>{r.cod || '—'}</td>
+                    <td style={{ fontSize: 11, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.proc}>{r.proc || '—'}</td>
+                    <td style={{ fontSize: 11, color: 'var(--cinza-texto)' }}>{r.cid || '—'}</td>
+                    <td>
+                      <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 12, background: bgBadge, color: cor }}>
+                        {label}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'right', fontWeight: 800, fontSize: 13, color: cor }}>R$ {fmt(r.val)}</td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
 
         {/* Paginação */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 24px', borderTop: '1px solid var(--cinza-borda)', fontSize: 13 }}>
-          <span style={{ color: 'var(--cinza-texto)' }}>
-            Pág. <strong>{pag_}</strong> de <strong>{totalPag}</strong>
-          </span>
+          <span style={{ color: 'var(--cinza-texto)' }}>Pág. <strong>{pag_}</strong> de <strong>{totalPag}</strong></span>
           <div style={{ display: 'flex', gap: 4 }}>
             <button onClick={()=>go(1)}        disabled={pag_===1}        style={{ padding:'5px 10px',borderRadius:6,border:'1.5px solid var(--cinza-borda)',background:pag_===1?'var(--cinza-bg)':'#fff',cursor:pag_===1?'not-allowed':'pointer',fontWeight:600,fontSize:13 }}>«</button>
             <button onClick={()=>go(pag_-1)}   disabled={pag_===1}        style={{ padding:'5px 10px',borderRadius:6,border:'1.5px solid var(--cinza-borda)',background:pag_===1?'var(--cinza-bg)':'#fff',cursor:pag_===1?'not-allowed':'pointer',fontWeight:600,fontSize:13 }}>‹</button>
-            {Array.from({length:Math.min(5,totalPag)},(_,k)=>{const s=Math.max(1,Math.min(pag_-2,totalPag-4));const pg=s+k;return<button key={pg} onClick={()=>go(pg)} style={{padding:'5px 10px',borderRadius:6,border:`1.5px solid ${pg===pag_?'var(--laranja)':'var(--cinza-borda)'}`,background:pg===pag_?'var(--laranja)':'#fff',color:pg===pag_?'#fff':'var(--grafite)',cursor:'pointer',fontWeight:600,fontSize:13}}>{pg}</button>})}
+            {Array.from({length:Math.min(5,totalPag)},(_,k)=>{const s=Math.max(1,Math.min(pag_-2,totalPag-4));const pg=s+k;return<button key={pg} onClick={()=>go(pg)} style={{padding:'5px 10px',borderRadius:6,border:`1.5px solid ${pg===pag_?'var(--azul)':'var(--cinza-borda)'}`,background:pg===pag_?'var(--azul)':'#fff',color:pg===pag_?'#fff':'var(--grafite)',cursor:'pointer',fontWeight:600,fontSize:13}}>{pg}</button>})}
             <button onClick={()=>go(pag_+1)}   disabled={pag_===totalPag} style={{ padding:'5px 10px',borderRadius:6,border:'1.5px solid var(--cinza-borda)',background:pag_===totalPag?'var(--cinza-bg)':'#fff',cursor:pag_===totalPag?'not-allowed':'pointer',fontWeight:600,fontSize:13 }}>›</button>
             <button onClick={()=>go(totalPag)} disabled={pag_===totalPag} style={{ padding:'5px 10px',borderRadius:6,border:'1.5px solid var(--cinza-borda)',background:pag_===totalPag?'var(--cinza-bg)':'#fff',cursor:pag_===totalPag?'not-allowed':'pointer',fontWeight:600,fontSize:13 }}>»</button>
           </div>
