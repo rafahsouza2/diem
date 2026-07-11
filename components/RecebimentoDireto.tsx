@@ -157,6 +157,43 @@ export default function RecebimentoDireto() {
         </div>
       </div>
 
+      {/* Sobreposição com Fat. sem quitação */}
+      <div className="card" style={{ padding:'16px 20px', marginBottom:20, borderLeft:'4px solid var(--verde)' }}>
+        <div style={{ display:'flex', alignItems:'flex-start', gap:14 }}>
+          <div style={{ flexShrink:0, marginTop:2 }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--verde)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <div style={{ flex:1 }}>
+            <div style={{ fontWeight:700, fontSize:13, color:'var(--grafite)', marginBottom:8 }}>
+              Estes pagamentos <strong style={{ color:'var(--verde)' }}>não fazem parte</strong> do gap de R$ 1,43M (Fat. sem quitação)
+            </div>
+            <div style={{ fontSize:12, color:'var(--cinza-texto)', lineHeight:1.7 }}>
+              O cruzamento com os 9.234 registros do Fat. sem quitação mostrou sobreposição mínima:
+              apenas <strong>6 pacientes</strong> da CASEMBRAPA aparecem nos dois datasets, somando <strong>R$ 3.326</strong> — menos de 0,2% do gap.
+              Os OSMs destes demonstrativos já constam no sistema de quitação, portanto estão <strong>reconciliados</strong>.
+              O R$ 1,43M restante vem de outros convênios ainda pendentes de quitação.
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12, marginTop:12 }}>
+              <div style={{ background:'var(--cinza-bg)', borderRadius:8, padding:'8px 12px', fontSize:11 }}>
+                <div style={{ color:'var(--cinza-texto)', marginBottom:2 }}>Pacientes CASEMBRAPA</div>
+                <strong style={{ fontSize:14, color:'var(--grafite)' }}>69</strong>
+              </div>
+              <div style={{ background:'var(--cinza-bg)', borderRadius:8, padding:'8px 12px', fontSize:11 }}>
+                <div style={{ color:'var(--cinza-texto)', marginBottom:2 }}>Em ambos os datasets</div>
+                <strong style={{ fontSize:14, color:'var(--laranja)' }}>6 pacientes</strong>
+              </div>
+              <div style={{ background:'var(--cinza-bg)', borderRadius:8, padding:'8px 12px', fontSize:11 }}>
+                <div style={{ color:'var(--cinza-texto)', marginBottom:2 }}>Valor sobreposição</div>
+                <strong style={{ fontSize:14, color:'var(--laranja)' }}>R$ 3.326</strong>
+                <span style={{ fontSize:10, color:'var(--cinza-texto)', display:'block' }}>de R$ 1,43M (0,2%)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Abas */}
       <div className="period-tabs" style={{ marginBottom:16 }}>
         <button className={`period-tab${aba==='analise'?' active':''}`} onClick={()=>{setAba('analise');setPagina(1);setBusca('')}}>
